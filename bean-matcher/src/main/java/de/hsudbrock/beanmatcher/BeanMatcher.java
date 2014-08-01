@@ -79,7 +79,9 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 	private Class<T> clazz;
 	
 	private ClassSpecificMatchers classSpecificMatchers = new ClassSpecificMatchers();
-	private Map<Pattern, ClassSpecificMatchers> fieldSpecificMatchers = Maps.newHashMap();  
+	private Map<Pattern, ClassSpecificMatchers> fieldSpecificMatchers = Maps.newHashMap();
+
+	private Matcher<T> matcher;  
 	
 	// -----------------------------------------------------------------------------------------------------------------
 	// Construction
@@ -96,12 +98,18 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 	
 	@Override
 	public boolean matches(Object item) {
-		return createMatcher().matches(item);
+		if (matcher == null) {
+			matcher = createMatcher();
+		}
+		return matcher.matches(item);
 	}
 	
 	@Override
 	public void describeTo(Description description) {
-		createMatcher().describeTo(description);
+		if (matcher == null) {
+			matcher = createMatcher();
+		}
+		matcher.describeTo(description);
 	}
 	
 	// -----------------------------------------------------------------------------------------------------------------
@@ -132,9 +140,9 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 		return this;
 	}
 	
-	public BeanMatcher<T> withFieldMatcher(String fieldname, final Matcher<T> matcher, Class<T> clazz) {
-		ValueBasedMatcher<T> valueBasedMatcher = new ValueBasedMatcher<T>() {
-			@Override public Matcher<T> apply(T value) {
+	public <S> BeanMatcher<T> withFieldMatcher(String fieldname, final Matcher<S> matcher, Class<S> clazz) {
+		ValueBasedMatcher<S> valueBasedMatcher = new ValueBasedMatcher<S>() {
+			@Override public Matcher<S> apply(S value) {
 				return matcher;
 			}
 		};
@@ -216,7 +224,13 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 		
 		for (Pattern pattern : fieldSpecificMatchers.keySet()) {
 			if (pattern.matcher(getPropertyName(getter)).matches()) {
-				return fieldSpecificMatchers.get(pattern).get(returnType).apply(value);
+				 ValueBasedMatcher<S> valueBasedMatcher = fieldSpecificMatchers.get(pattern).get(returnType);
+				 Matcher<S> matcher = valueBasedMatcher.apply(value);
+				 if (matcher != null) {
+					 return hasProperty(
+							 getPropertyName(getter),
+							 matcher);
+				 }
 			}
 		}
 		
