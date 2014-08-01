@@ -8,10 +8,23 @@ import java.util.*;
 public class TestBean {
 
 	private String string;
+	private Long longValue;
+	private Boolean booleanValue;
+	
+	private boolean primitiveBooleanValue;
+	
 	private List<String> stringList;
 	private Set<String> stringSet;
+	
 	private TestInnerBean innerBean;
-	private Long longValue;
+
+	public String getString() {
+		return string;
+	}
+
+	public void setString(String string) {
+		this.string = string;
+	}
 
 	public Long getLongValue() {
 		return longValue;
@@ -21,12 +34,28 @@ public class TestBean {
 		this.longValue = longValue;
 	}
 
-	public TestInnerBean getInnerBean() {
-		return innerBean;
+	public Boolean getBooleanValue() {
+		return booleanValue;
 	}
 
-	public void setInnerBean(TestInnerBean innerBean) {
-		this.innerBean = innerBean;
+	public void setBooleanValue(Boolean booleanValue) {
+		this.booleanValue = booleanValue;
+	}
+
+	public boolean isPrimitiveBooleanValue() {
+		return primitiveBooleanValue;
+	}
+
+	public void setPrimitiveBooleanValue(boolean primitiveBooleanValue) {
+		this.primitiveBooleanValue = primitiveBooleanValue;
+	}
+
+	public List<String> getStringList() {
+		return stringList;
+	}
+
+	public void setStringList(List<String> stringList) {
+		this.stringList = stringList;
 	}
 
 	public Set<String> getStringSet() {
@@ -37,19 +66,11 @@ public class TestBean {
 		this.stringSet = stringSet;
 	}
 
-	public List<String> getStringList() {
-		return stringList;
+	public TestInnerBean getInnerBean() {
+		return innerBean;
 	}
 
-	public void setStringList(List<String> strings) {
-		this.stringList = strings;
-	}
-
-	public String getString() {
-		return string;
-	}
-
-	public void setString(String string) {
-		this.string = string;
+	public void setInnerBean(TestInnerBean innerBean) {
+		this.innerBean = innerBean;
 	}
 }

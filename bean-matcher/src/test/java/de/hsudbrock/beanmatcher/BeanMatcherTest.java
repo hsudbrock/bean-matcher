@@ -2,9 +2,11 @@ package de.hsudbrock.beanmatcher;
 
 import org.junit.*;
 
+import com.google.common.base.*;
 import com.google.common.collect.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anything;
 
 /**
  * Unit tests for the {@link BeanMatcher}.
@@ -13,21 +15,23 @@ public class BeanMatcherTest {
 
 	@Test
 	public void test() {
-		TestBean testBean = new TestBean();
-		testBean.setString("check");
-		testBean.setStringList(Lists.<String>newArrayList("hullo", "hallo"));
-		testBean.setStringSet(Sets.newHashSet("hello", "hullo"));
-		testBean.setLongValue(Long.valueOf(13));
-		testBean.setInnerBean(new TestInnerBean(36, true));
+		TestBean reference = new TestBean();
+		reference.setBooleanValue(Boolean.TRUE);
+		reference.setLongValue(Long.valueOf(10));
+		reference.setPrimitiveBooleanValue(false);
+		reference.setString("hello world");
+		reference.setStringList(Lists.newArrayList("a", "b"));
+		reference.setStringSet(Sets.newHashSet("x", "y"));
 		
-		TestBean otherBean = new TestBean();
-		otherBean.setString("check");
-		otherBean.setStringList(Lists.<String>newArrayList("hullo", "hallo"));
-		otherBean.setStringSet(Sets.newHashSet("hullo", "hello"));
-		otherBean.setInnerBean(new TestInnerBean(36, true));
-		otherBean.setLongValue(Long.valueOf(132));
+		TestBean actual = new TestBean();
+		actual.setBooleanValue(Boolean.TRUE);
+		actual.setLongValue(Long.valueOf(10));
+		actual.setPrimitiveBooleanValue(false);
+		actual.setString("hello world");
+		actual.setStringList(Lists.newArrayList("a", "b"));
+		actual.setStringSet(Sets.newHashSet("x", "y"));
 		
-		assertThat(testBean, BeanMatcher.matchesBean(otherBean, TestBean.class, IgnoreBeanMatcherSpec.ignoreProperty("longVale")));
+		assertThat(actual, BeanMatcher.matchesBean(reference, TestBean.class));
 	}
 	
 }

@@ -13,157 +13,233 @@ import static org.reflections.ReflectionUtils.withPrefix;
 
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.regex.*;
 
 import org.apache.commons.lang3.*;
-import org.apache.commons.lang3.tuple.*;
 import org.hamcrest.*;
+import org.hamcrest.Matcher;
 import org.reflections.*;
 
-import com.google.common.base.*;
 import com.google.common.collect.*;
 
 @SuppressWarnings("unchecked")
-public class BeanMatcher {
+public class BeanMatcher<T> extends BaseMatcher<T> {
 	
 	// -----------------------------------------------------------------------------------------------------------------
-	// Default matcher generation
+	// Constants
 	// -----------------------------------------------------------------------------------------------------------------
 	
-	private static Map matcherGenerator = Maps.newHashMap(); static {
-		matcherGenerator.put(String.class, new Function<Pair<String, BeanMatcherSpec[]>, Matcher<String>>() {
-			@Override public Matcher<String> apply(Pair<String, BeanMatcherSpec[]> input) {
-				return equalTo(input.getLeft());
+	private static final ValueBasedMatcher<String> STRING_EQUALS_MATCHER = new ValueBasedMatcher<String>() {
+		@Override public Matcher<String> apply(String input) {
+			return equalTo(input);
+		}
+	};
+	
+	private static final ValueBasedMatcher<Number> NUMBER_EQUALS_MATCHER = new ValueBasedMatcher<Number>() {
+		@Override public Matcher<Number> apply(Number input) {
+			return equalTo(input);
+		}
+	};
+	
+	private static final ValueBasedMatcher<Boolean> BOOLEAN_EQUALS_MATCHER = new ValueBasedMatcher<Boolean>() {
+		@Override public Matcher<Boolean> apply(Boolean input) {
+			return equalTo(input);
+		}
+	};
+	
+	private static final PassThroughValueBasedMatcher<Iterable<?>> ITERABLE_PASSTHROUGH_MATCHER = new PassThroughValueBasedMatcher<Iterable<?>>() {
+		@Override public Matcher<Iterable<?>> apply(Iterable<?> iterable) {
+			List<Matcher<? super Object>> itemMatchers = Lists.newArrayList();
+			for (Object object : iterable) {
+				@SuppressWarnings("rawtypes")
+				Class clazz = object.getClass();
+				itemMatchers.add(super.configuredBeanMatcher(BeanMatcher.matchesBean(object, clazz)));
 			}
-		});
-		
-		matcherGenerator.put(Iterable.class, new Function<Pair<Iterable<?>, BeanMatcherSpec[]>, Matcher<Iterable<? extends Object>>>() {
-			@Override public Matcher<Iterable<? extends Object>> apply(Pair<Iterable<?>, BeanMatcherSpec[]> input) {
-				List<Matcher<? super Object>> itemMatchers = Lists.newArrayList();
-				for (Object object : input.getLeft()) {
-					Class clazz = object.getClass();
-					itemMatchers.add(matchesBean(object, clazz, input.getRight()));
-				}
-				return contains(itemMatchers);
+			return contains(itemMatchers);
+		}
+	};
+	
+	private static final PassThroughValueBasedMatcher<Iterable<?>> SET_PASSTHROUGH_MATCHER = new PassThroughValueBasedMatcher<Iterable<?>>() {
+		@Override public Matcher<Iterable<?>> apply(Iterable<?> Set) {
+			List<Matcher<? super Object>> itemMatchers = Lists.newArrayList();
+			for (Object object : Set) {
+				@SuppressWarnings("rawtypes")
+				Class clazz = object.getClass();
+				itemMatchers.add(super.configuredBeanMatcher(BeanMatcher.matchesBean(object, clazz)));
 			}
-			
-		});
-		
-		matcherGenerator.put(Set.class, new Function<Pair<Set<?>, BeanMatcherSpec[]>, Matcher<Iterable<? extends Object>>>() {
-			@Override public Matcher<Iterable<? extends Object>> apply(Pair<Set<?>, BeanMatcherSpec[]> input) {
-				List<Matcher<? super Object>> itemMatchers = Lists.newArrayList();
-				for (Object object : input.getLeft()) {
-					itemMatchers.add(matchesBean(object, Object.class, input.getRight()));
-				}
-				return containsInAnyOrder(itemMatchers);
-			}
-			
-		});
-		
-		matcherGenerator.put(Number.class, new Function<Pair<Number, BeanMatcherSpec[]>, Matcher<Number>>() {
-			@Override public Matcher<Number> apply(Pair<Number, BeanMatcherSpec[]> input) {
-				return equalTo(input.getLeft());
-			}
-		});
-		
-		matcherGenerator.put(Boolean.class, new Function<Pair<Boolean, BeanMatcherSpec[]>, Matcher<Boolean>>() {
-			@Override public Matcher<Boolean> apply(Pair<Boolean, BeanMatcherSpec[]> input) {
-				return equalTo(input.getLeft());
-			}
-		});
+			return containsInAnyOrder(itemMatchers);
+		}
+	};
+	
+	// -----------------------------------------------------------------------------------------------------------------
+	// Fields
+	// -----------------------------------------------------------------------------------------------------------------
+
+	private T bean;
+	private Class<T> clazz;
+	
+	private ClassSpecificMatchers classSpecificMatchers = new ClassSpecificMatchers();
+	private Map<Pattern, ClassSpecificMatchers> fieldSpecificMatchers = Maps.newHashMap();  
+	
+	// -----------------------------------------------------------------------------------------------------------------
+	// Construction
+	// -----------------------------------------------------------------------------------------------------------------
+	
+	private BeanMatcher(T bean, Class<T> clazz) {
+		this.bean = bean;
+		this.clazz = clazz;
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------------
+	// Implementation of BaseMatcher
+	// -----------------------------------------------------------------------------------------------------------------
+	
+	@Override
+	public boolean matches(Object item) {
+		return createMatcher().matches(item);
+	}
+	
+	@Override
+	public void describeTo(Description description) {
+		createMatcher().describeTo(description);
 	}
 	
 	// -----------------------------------------------------------------------------------------------------------------
 	// Matcher setup methods
 	// -----------------------------------------------------------------------------------------------------------------
 	
-	public static <T> Matcher<T> matchesBean(T bean, Class<T> clazz, BeanMatcherSpec... beanMatcherSpecs) {
-		if (bean == null) {
-			return nullValue(clazz);
-		}
+	@SuppressWarnings("rawtypes")
+	public static <T> BeanMatcher<T> matchesBean(T bean, Class<T> clazz) {
+		return new BeanMatcher<T>(bean, clazz)
+				.withValueSpecificMatcher(STRING_EQUALS_MATCHER, String.class)
+				.withValueSpecificMatcher(NUMBER_EQUALS_MATCHER, Number.class)
+				.withValueSpecificMatcher(BOOLEAN_EQUALS_MATCHER, Boolean.class)
+				.withValueSpecificMatcher((PassThroughValueBasedMatcher) ITERABLE_PASSTHROUGH_MATCHER, Iterable.class)
+				.withValueSpecificMatcher((PassThroughValueBasedMatcher) SET_PASSTHROUGH_MATCHER, Set.class);
+	}
+	
+	public BeanMatcher<T> withClassSpecificMatcher(final Matcher<T> matcher, Class<T> clazz) {
+		this.classSpecificMatchers.put(clazz, new ValueBasedMatcher<T>() {
+			@Override public Matcher<T> apply(T value) {
+				return matcher;
+			}
+		});
+		return this;
+	}
+	
+	public <S> BeanMatcher<T> withValueSpecificMatcher(ValueBasedMatcher<S> valueBasedMatcher, Class<S> clazz) {
+		this.classSpecificMatchers.put(clazz, valueBasedMatcher);
+		return this;
+	}
+	
+	public BeanMatcher<T> withFieldMatcher(String fieldname, final Matcher<T> matcher, Class<T> clazz) {
+		ValueBasedMatcher<T> valueBasedMatcher = new ValueBasedMatcher<T>() {
+			@Override public Matcher<T> apply(T value) {
+				return matcher;
+			}
+		};
 		
-		Matcher<T> typeBasedMatcher = findTypeBasedMatcher(bean, clazz, beanMatcherSpecs);
-		if (typeBasedMatcher != null) {
-			return typeBasedMatcher;
-		} else {
-			return createBeanMatcher(bean, clazz, beanMatcherSpecs);
-		}
+		Pattern pattern = Pattern.compile(fieldname);
+		
+		if (! this.fieldSpecificMatchers.containsKey(pattern)) {
+			this.fieldSpecificMatchers.put(pattern, new ClassSpecificMatchers());
+		} 
+		
+		this.fieldSpecificMatchers.get(pattern).put(clazz, valueBasedMatcher);
+		
+		return this;
+	}
+	
+	public BeanMatcher<T> withFieldMatcher(String fieldname, final ValueBasedMatcher<T> valueBasedMatcher, Class<T> clazz) {
+		Pattern pattern = Pattern.compile(fieldname);
+		
+		if (! this.fieldSpecificMatchers.containsKey(pattern)) {
+			this.fieldSpecificMatchers.put(pattern, new ClassSpecificMatchers());
+		} 
+		
+		this.fieldSpecificMatchers.get(pattern).put(clazz, valueBasedMatcher);
+		
+		return this;
+	}
+	
+	private BeanMatcher<T> withClassSpecificMatchers(ClassSpecificMatchers classSpecificMatchers) {
+		this.classSpecificMatchers = classSpecificMatchers;
+		return this;
 	}
 	
 	// -----------------------------------------------------------------------------------------------------------------
 	// Implementation
 	// -----------------------------------------------------------------------------------------------------------------
-	
-	private static <T> Matcher<T> findTypeBasedMatcher(T bean, Class<T> clazz, BeanMatcherSpec... beanMatcherSpecs) {
+
+	@SuppressWarnings("rawtypes")
+	private <S> Matcher<T> createMatcher() {
+		if (bean == null) {
+			return nullValue(clazz);
+		}
+		
+		Class<S> relevantSuperClass = (Class<S>) getRelevantSuperClass(clazz);
+		
+		if (relevantSuperClass != null && classSpecificMatchers.containsKey(relevantSuperClass)) {
+			ValueBasedMatcher<S> valueBasedMatcher = classSpecificMatchers.get(relevantSuperClass);
+			if (valueBasedMatcher instanceof PassThroughValueBasedMatcher) {
+				((PassThroughValueBasedMatcher) valueBasedMatcher).setBeanMatcherConfigurer(createBeanMatcherConfigurer());
+			}
+			return (Matcher<T>) valueBasedMatcher.apply((S) bean);
+		}
+		
 		if (clazz.isPrimitive()) {
 			return equalTo(bean);
-		}
+		} 
 		
-		Class<?> relevantSuperClass = getRelevantSuperClass(clazz);
-		
-		if (relevantSuperClass != null) {
-			return (Matcher<T>) ((Function) matcherGenerator.get(relevantSuperClass)).apply(Pair.of(bean, beanMatcherSpecs));
-		} else {
-			return null;
-		}
+		return createAllFieldsMatcher();
 	}
 	
-	private static <T> Matcher<T> createBeanMatcher(T bean, Class<T> clazz, BeanMatcherSpec... beanMatcherSpecs) {
-		List<Matcher<? super T>> fieldMatchers = Lists.newArrayList();
-		
-		for (Method getter : getGetters(clazz)) {
-			try {
-				fieldMatchers.add(getGetterMatcher(bean, getter, beanMatcherSpecs));
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+	private <S> BeanMatcherConfigurer<S> createBeanMatcherConfigurer() {
+		return new BeanMatcherConfigurer<S>() {
+			@Override public BeanMatcher<S> apply(BeanMatcher<S> beanMatcher) {
+				return beanMatcher.withClassSpecificMatchers(classSpecificMatchers);
 			}
+		};
+	}
+
+	private Matcher<T> createAllFieldsMatcher() {
+		List<Matcher<? super T>> fieldMatchers = Lists.newArrayList();
+		for (Method getterMethod : getGetterMethods(clazz)) {
+			fieldMatchers.add(createGetterMatcher(getterMethod));
 		}
-		
 		return allOf(fieldMatchers);
 	}
 
-	private static <T,S> Matcher<Object> getGetterMatcher(T bean, Method getter, BeanMatcherSpec... beanMatcherSpecs) throws IllegalAccessException, InvocationTargetException {
+	private <S> Matcher<S> createGetterMatcher(Method getter)  {
 		Class<S> returnType = (Class<S>) getter.getReturnType();
-		return hasProperty(
-				getPropertyName(getter), 
-				getPropertyMatcher(
-						getPropertyName(getter), 
-						method(getter.getName()).withReturnType(returnType).in(bean).invoke(),
-						returnType,
-						beanMatcherSpecs));
-	}
-	
-	private static <T> Matcher<T> getPropertyMatcher(String propertyName, T object, Class<T> clazz, BeanMatcherSpec... beanMatcherSpecs) {
-		for (BeanMatcherSpec beanMatcherSpec : beanMatcherSpecs) {
-			if (beanMatcherSpec.matcher(propertyName) != null) {
-				return (Matcher<T>) beanMatcherSpec.matcher(propertyName);
+		S value = method(getter.getName()).withReturnType(returnType).in(bean).invoke();
+		
+		for (Pattern pattern : fieldSpecificMatchers.keySet()) {
+			if (pattern.matcher(getPropertyName(getter)).matches()) {
+				return fieldSpecificMatchers.get(pattern).get(returnType).apply(value);
 			}
 		}
 		
-		BeanMatcherSpec[] diveInBeanMatcherSpecs = new BeanMatcherSpec[beanMatcherSpecs.length];
-		for (int i = 0; i < beanMatcherSpecs.length; i++) {
-			diveInBeanMatcherSpecs[i] = beanMatcherSpecs[i].diveIntoProperty(propertyName);
-		}
-		
-		return matchesBean(object, clazz, diveInBeanMatcherSpecs);
+		return hasProperty(
+				getPropertyName(getter),
+				BeanMatcher.matchesBean(value, returnType).withClassSpecificMatchers(classSpecificMatchers));
 	}
 
-	private static Class<?> getRelevantSuperClass(Class<?> clazz) {
+	private Class<?> getRelevantSuperClass(Class<?> clazz) {
+		// first check whether class itself is relevant
+		if (classSpecificMatchers.containsKey(clazz)) {
+			return clazz;
+		}
 		
-		// first, check implemented interface
-		
-		for (Class iface : clazz.getInterfaces()) {
+		// then check implemented interfaces
+		for (Class<?> iface : clazz.getInterfaces()) {
 			Class<?> relevantInterface = getRelevantSuperClass(iface);
 			if (relevantInterface != null) {
 				return relevantInterface;
 			}
 		}
 		
-		// if no interface is relevant, check class itself
-		
-		if (matcherGenerator.containsKey(clazz)) {
-			return clazz;
-		}
-		
+		// finally, recurse to superclass
 		if (clazz.getSuperclass() != null) {
 			return getRelevantSuperClass(clazz.getSuperclass());
 		} else {
@@ -171,12 +247,11 @@ public class BeanMatcher {
 		}
 	}
 
-	private static String getPropertyName(Method getter) {
+	private String getPropertyName(Method getter) {
 		return StringUtils.uncapitalize(StringUtils.substring(getter.getName(), "get".length()));
 	}
 
-	@SuppressWarnings("unchecked")
-	private static <T> Set<Method> getGetters(Class<T> clazz) {
+	private <S> Set<Method> getGetterMethods(Class<S> clazz) {
 		return ReflectionUtils.getAllMethods(clazz, withModifier(Modifier.PUBLIC), withPrefix("get"), withParametersCount(0));
-	} 
-}	
+	}
+}

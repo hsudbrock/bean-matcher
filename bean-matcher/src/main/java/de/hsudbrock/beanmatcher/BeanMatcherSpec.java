@@ -6,6 +6,6 @@ public interface BeanMatcherSpec {
 	
 	BeanMatcherSpec diveIntoProperty(String propertyName);
 	
-	Matcher<?> matcher(String propertyName);
+	<T> Matcher<T> matcher(String propertyName, T item, Class<T> clazz);
 	
 }

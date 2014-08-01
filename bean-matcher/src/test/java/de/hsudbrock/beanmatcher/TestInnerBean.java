@@ -1,29 +1,23 @@
 package de.hsudbrock.beanmatcher;
 
 public class TestInnerBean {
+
+	private long primitiveLongValue;
+	private Boolean booleanValue;
 	
-	public TestInnerBean(long l, boolean b) {
-		this.longValue = l;
-		this.bool = Boolean.valueOf(b);
-	}
-
-	private long longValue;
-	private Boolean bool;
-
-	public Boolean getBool() {
-		return bool;
-	}
-
-	public void setBool(Boolean bool) {
-		this.bool = bool;
-	}
-
-	public long getLongValue() {
-		return longValue;
-	}
-
-	public void setLongValue(long longValue) {
-		this.longValue = longValue;
+	public long getPrimitiveLongValue() {
+		return primitiveLongValue;
 	}
 	
+	public void setPrimitiveLongValue(long primitiveLongValue) {
+		this.primitiveLongValue = primitiveLongValue;
+	}
+	
+	public Boolean getBooleanValue() {
+		return booleanValue;
+	}
+	
+	public void setBooleanValue(Boolean booleanValue) {
+		this.booleanValue = booleanValue;
+	}
 }

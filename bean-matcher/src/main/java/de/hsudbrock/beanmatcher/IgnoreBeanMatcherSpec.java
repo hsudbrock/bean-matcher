@@ -21,10 +21,11 @@ public class IgnoreBeanMatcherSpec implements BeanMatcherSpec {
 		return new IgnoreBeanMatcherSpec(prefix + propertyName + ".", regex);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
-	public Matcher<?> matcher(String propertyName) {
+	public <T> Matcher<T> matcher(String propertyName, T item, Class<T> clazz) {
 		if (regex.matcher(prefix + propertyName).matches()) {
-			return anything();
+			return (Matcher<T>) anything();
 		} else {
 			return null;
 		}
