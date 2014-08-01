@@ -34,7 +34,7 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 			return equalTo(input);
 		}
 	};
-	
+
 	private static final ValueBasedMatcher<Number> NUMBER_EQUALS_MATCHER = new ValueBasedMatcher<Number>() {
 		@Override public Matcher<Number> apply(Number input) {
 			return equalTo(input);
@@ -110,6 +110,14 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 			matcher = createMatcher();
 		}
 		matcher.describeTo(description);
+	}
+	
+	@Override
+	public void describeMismatch(Object item, Description mismatchDescription) {
+		if (matcher == null) {
+			matcher = createMatcher();
+		}
+		matcher.describeMismatch(item, mismatchDescription);
 	}
 	
 	// -----------------------------------------------------------------------------------------------------------------
