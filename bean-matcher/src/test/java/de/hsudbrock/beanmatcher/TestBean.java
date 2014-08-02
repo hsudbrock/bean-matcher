@@ -42,7 +42,7 @@ public class TestBean {
 		this.booleanValue = booleanValue;
 	}
 
-	public boolean isPrimitiveBooleanValue() {
+	public boolean getPrimitiveBooleanValue() {
 		return primitiveBooleanValue;
 	}
 
