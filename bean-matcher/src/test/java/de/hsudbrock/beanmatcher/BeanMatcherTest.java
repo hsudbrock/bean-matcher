@@ -12,6 +12,10 @@ import com.google.common.collect.*;
  * Unit tests for the {@link BeanMatcher}.
  */
 public class BeanMatcherTest {
+	
+    // -----------------------------------------------------------------------------------------------------------------
+    // Tests Match
+    // -----------------------------------------------------------------------------------------------------------------
 
 	@Test
 	public void testDefaultBeanMatcherMatch() {
@@ -19,6 +23,10 @@ public class BeanMatcherTest {
 		TestBean actual = createTestBean();
 		assertThat(actual, matchesBean(reference, TestBean.class));
 	}
+	
+    // -----------------------------------------------------------------------------------------------------------------
+    // Tests no match
+    // -----------------------------------------------------------------------------------------------------------------
 	
 	@Test
 	public void testDefaultBeanMatcherNoStringMatch() {
@@ -45,13 +53,43 @@ public class BeanMatcherTest {
 	}
 	
 	@Test
-	public void testDefaultBeanMatcherNoPrimitiveMatch() {
+	public void testDefaultBeanMatcherNoPrimitiveBooleanMatch() {
 		TestBean reference = createTestBean();
 		TestBean actual = createTestBean();
 		actual.setPrimitiveBooleanValue(false);
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
+	@Test
+	public void testDefaultBeanMatcherNoListMatch() {
+		TestBean reference = createTestBean();
+		TestBean actual = createTestBean();
+		actual.setStringList(Lists.newArrayList("b", "a"));
+		assertThat(actual, not(matchesBean(reference, TestBean.class)));
+	}
+	
+	@Test
+	public void testDefaultBeanMatcherNoSetMatch() {
+		TestBean reference = createTestBean();
+		TestBean actual = createTestBean();
+		actual.setStringSet(Sets.newHashSet("x", "y", "z"));
+		assertThat(actual, not(matchesBean(reference, TestBean.class)));
+	}
+	
+	@Test
+	public void testDefaultBeanMatcherNoMatchingInnerBean() {
+		TestBean reference = createTestBean();
+		TestBean actual = createTestBean();
+		
+		TestInnerBean otherInnerBean = createTestInnerBean();
+		otherInnerBean.setString("blabla");
+		actual.setInnerBean(otherInnerBean);
+		assertThat(actual, not(matchesBean(reference, TestBean.class)));
+	}
+	
+    // -----------------------------------------------------------------------------------------------------------------
+    // Implementation
+    // -----------------------------------------------------------------------------------------------------------------
 	
 	
 	private TestBean createTestBean() {
