@@ -4,6 +4,7 @@ import static de.hsudbrock.beanmatcher.BeanMatcher.matchesBean;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 import org.hamcrest.*;
 import org.junit.*;
@@ -117,6 +118,16 @@ public class BeanMatcherTest {
 				return matchesBean(innerBean, TestInnerBean.class);
 			}
 		}, TestInnerBean.class)));
+	}
+	
+	@Test
+	public void testWithFieldMatcherMatch() {
+		assertThat(actual, matchesBean(reference, TestBean.class).withFieldMatcher("string", BeanMatcher.<String>valueEqualTo(), String.class));
+	}
+	
+	@Test
+	public void testWithFieldMatcherNoMatch() {
+		assertThat(actual, not(matchesBean(reference, TestBean.class).withFieldMatcher("string", nullValue(String.class), String.class)));
 	}
 	
     // -----------------------------------------------------------------------------------------------------------------

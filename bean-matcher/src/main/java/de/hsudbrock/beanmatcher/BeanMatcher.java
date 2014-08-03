@@ -26,7 +26,20 @@ import com.google.common.collect.*;
 public class BeanMatcher<T> extends BaseMatcher<T> {
 	
 	// -----------------------------------------------------------------------------------------------------------------
-	// Constants
+	// Public Constants
+	// -----------------------------------------------------------------------------------------------------------------
+	
+	public static <S> ValueBasedMatcher<S> valueEqualTo() {
+		return new ValueBasedMatcher<S>() {
+			@Override
+			public Matcher<S> apply(S input) {
+				return equalTo(input);
+			}
+		};
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------------
+	// Private Constants
 	// -----------------------------------------------------------------------------------------------------------------
 	
 	private static final ValueBasedMatcher<String> STRING_EQUALS_MATCHER = new ValueBasedMatcher<String>() {
@@ -166,7 +179,7 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 		return this;
 	}
 	
-	public BeanMatcher<T> withFieldMatcher(String fieldname, final ValueBasedMatcher<T> valueBasedMatcher, Class<T> clazz) {
+	public <S> BeanMatcher<T> withFieldMatcher(String fieldname, final ValueBasedMatcher<S> valueBasedMatcher, Class<S> clazz) {
 		Pattern pattern = Pattern.compile(fieldname);
 		
 		if (! this.fieldSpecificMatchers.containsKey(pattern)) {
