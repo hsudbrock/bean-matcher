@@ -134,9 +134,9 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 				.withValueSpecificMatcher((PassThroughValueBasedMatcher) SET_PASSTHROUGH_MATCHER, Set.class);
 	}
 	
-	public BeanMatcher<T> withClassSpecificMatcher(final Matcher<T> matcher, Class<T> clazz) {
-		this.classSpecificMatchers.put(clazz, new ValueBasedMatcher<T>() {
-			@Override public Matcher<T> apply(T value) {
+	public <S> BeanMatcher<T> withClassSpecificMatcher(final Matcher<S> matcher, Class<S> clazz) {
+		this.classSpecificMatchers.put(clazz, new ValueBasedMatcher<S>() {
+			@Override public Matcher<S> apply(S value) {
 				return matcher;
 			}
 		});

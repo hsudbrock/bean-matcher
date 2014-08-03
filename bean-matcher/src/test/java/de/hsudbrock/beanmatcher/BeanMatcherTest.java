@@ -2,8 +2,10 @@ package de.hsudbrock.beanmatcher;
 
 import static de.hsudbrock.beanmatcher.BeanMatcher.matchesBean;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
+import org.hamcrest.*;
 import org.junit.*;
 
 import com.google.common.collect.*;
@@ -13,14 +15,21 @@ import com.google.common.collect.*;
  */
 public class BeanMatcherTest {
 	
+	private TestBean reference;
+	private TestBean actual;
+	
+	@Before
+	public void setup() {
+		this.reference = createTestBean();
+		this.actual = createTestBean();
+	}
+	
     // -----------------------------------------------------------------------------------------------------------------
     // Tests Match
     // -----------------------------------------------------------------------------------------------------------------
 
 	@Test
 	public void testDefaultBeanMatcherMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		assertThat(actual, matchesBean(reference, TestBean.class));
 	}
 	
@@ -30,67 +39,89 @@ public class BeanMatcherTest {
 	
 	@Test
 	public void testDefaultBeanMatcherNoStringMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		actual.setString("other String");
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
 	@Test
 	public void testDefaultBeanMatcherNoBooleanMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		actual.setBooleanValue(Boolean.FALSE);
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
 	@Test
 	public void testDefaultBeanMatcherNoLongMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		actual.setLongValue(Long.valueOf(-1));
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
 	@Test
 	public void testDefaultBeanMatcherNoPrimitiveBooleanMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		actual.setPrimitiveBooleanValue(false);
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
 	@Test
 	public void testDefaultBeanMatcherNoListMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		actual.setStringList(Lists.newArrayList("b", "a"));
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
 	@Test
 	public void testDefaultBeanMatcherNoSetMatch() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
 		actual.setStringSet(Sets.newHashSet("x", "y", "z"));
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
 	@Test
 	public void testDefaultBeanMatcherNoMatchingInnerBean() {
-		TestBean reference = createTestBean();
-		TestBean actual = createTestBean();
-		
 		TestInnerBean otherInnerBean = createTestInnerBean();
 		otherInnerBean.setString("blabla");
 		actual.setInnerBean(otherInnerBean);
 		assertThat(actual, not(matchesBean(reference, TestBean.class)));
 	}
 	
+	// -----------------------------------------------------------------------------------------------------------------
+    // Tests class-based matcher
+    // -----------------------------------------------------------------------------------------------------------------
+	
+	@Test
+	public void testClassBasedMatch() {
+		actual.setLongValue(Long.valueOf(532));
+		for (TestBean innerBean : actual.getInnerBean().getTestBeanList()) {
+			innerBean.setLongValue(Long.valueOf(532));
+		}
+		assertThat(actual, matchesBean(reference, TestBean.class).withClassSpecificMatcher(equalTo(Long.valueOf(532)), Long.class));
+	}
+	
+	@Test
+	public void testClassBasedNoMatch() {
+		assertThat(actual, not(matchesBean(reference, TestBean.class).withClassSpecificMatcher(equalTo(Long.valueOf(532)), Long.class)));
+	}
+	
+	@Test
+	public void testValueSpecificMatch() {
+		assertThat(actual, matchesBean(reference, TestBean.class).withValueSpecificMatcher(new ValueBasedMatcher<TestInnerBean>() {
+			@Override public Matcher<TestInnerBean> apply(TestInnerBean input) {
+				return matchesBean(reference.getInnerBean(), TestInnerBean.class);
+			}
+		}, TestInnerBean.class));
+	}
+	
+	@Test
+	public void testValueSpecificNoMatch() {
+		assertThat(actual, not(matchesBean(reference, TestBean.class).withValueSpecificMatcher(new ValueBasedMatcher<TestInnerBean>() {
+			@Override public Matcher<TestInnerBean> apply(TestInnerBean input) {
+				TestInnerBean innerBean = new TestInnerBean();
+				innerBean.setTestBeanList(null);
+				return matchesBean(innerBean, TestInnerBean.class);
+			}
+		}, TestInnerBean.class)));
+	}
+	
     // -----------------------------------------------------------------------------------------------------------------
     // Implementation
     // -----------------------------------------------------------------------------------------------------------------
-	
 	
 	private TestBean createTestBean() {
 		return createTestBean(true);
