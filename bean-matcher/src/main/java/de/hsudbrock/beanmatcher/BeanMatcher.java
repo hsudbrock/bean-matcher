@@ -73,9 +73,9 @@ public class BeanMatcher<T> extends BaseMatcher<T> {
 	};
 	
 	private static final PassThroughValueBasedMatcher<Iterable<?>> SET_PASSTHROUGH_MATCHER = new PassThroughValueBasedMatcher<Iterable<?>>() {
-		@Override public Matcher<Iterable<?>> apply(Iterable<?> Set) {
+		@Override public Matcher<Iterable<?>> apply(Iterable<?> set) {
 			List<Matcher<? super Object>> itemMatchers = Lists.newArrayList();
-			for (Object object : Set) {
+			for (Object object : set) {
 				@SuppressWarnings("rawtypes")
 				Class clazz = object.getClass();
 				itemMatchers.add(super.configuredBeanMatcher(BeanMatcher.matchesBean(object, clazz)));

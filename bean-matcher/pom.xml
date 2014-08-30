@@ -1,10 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  
+  <description>Hamcrest matcher for beans, with a fluent API to adapt the matchers for bean properties.</description>
 
   <groupId>de.hsudbrock</groupId>
   <artifactId>bean-matcher</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <packaging>jar</packaging>
 
   <name>bean-matcher</name>
@@ -67,4 +69,5 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  
 </project>
